@@ -1,17 +1,15 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:task_app/widget/halfCircle.dart';
-import 'package:task_app/widget/task%20(1)/task/add_new_task.dart';
+
 import 'package:task_app/views/Firebase/firebase_service.dart';
+import 'package:task_app/widget/task%20(1)/task/add_new_task.dart';
 
 class ProjectDetailsPage extends StatefulWidget {
   final String projectId;
 
-  const ProjectDetailsPage({Key? key, required this.projectId})
-      : super(key: key);
+  const ProjectDetailsPage({Key? key, required this.projectId}) : super(key: key);
 
   @override
   _ProjectDetailsPageState createState() => _ProjectDetailsPageState();
@@ -23,6 +21,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
   String projectOwner = '';
   String projectDescription = '';
   List<String> teamMembers = [];
+  List<String> teamMemberNames = [];
   int taskCount = 0;
   int completedTaskCount = 0;
 
@@ -65,14 +64,20 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
           projectOwner = adminName;
         });
 
-        QuerySnapshot teamSnapshot = await FirebaseFirestore.instance
-            .collection('projects')
-            .doc(widget.projectId)
-            .collection('teamMembers')
-            .get();
+        // Fetch team members
+        List<dynamic> memberEmails = projectSnapshot['teamMembers'];
+        List<String> usernames = [];
+
+        for (String email in memberEmails) {
+          Map<String, dynamic>? userData = await FirebaseService().getUserByEmail(email);
+          if (userData != null) {
+            usernames.add(userData['username']);
+          }
+        }
+
         setState(() {
-          teamMembers =
-              teamSnapshot.docs.map((doc) => doc['name'] as String).toList();
+          teamMembers = List<String>.from(memberEmails);
+          teamMemberNames = usernames;
         });
       }
     } catch (e) {
@@ -105,6 +110,21 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     });
   }
 
+  /// Returns an icon based on the first letter of the member's name
+  IconData _getIconForName(String name) {
+    // Using a simple switch-case for demonstration purposes
+    switch (name[0].toUpperCase()) {
+      case 'A':
+        return Icons.all_inclusive;
+      case 'B':
+        return Icons.bug_report;
+      case 'C':
+        return Icons.child_care;
+      default:
+        return Icons.person;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,163 +136,230 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         centerTitle: true,
       ),
       body: Container(
-        color: const Color.fromARGB(
-            255, 143, 57, 57), // Ensure the entire page has a white background
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 16),
-                // Progress Chart
-                Container(
-                  height: 250, // زيادة حجم الشارت
-                  padding: EdgeInsets.all(16),
-                  child: CustomPaint(
-                    painter: ProgressChartPainter(
-                      inProgress: 0.6,
-                      done: 0.3,
-                      toDo: 0.1,
-                  ),
-                  ),
-                ),
-
-                Text(
-                  projectName,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Project Owner: $projectOwner',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Description: $projectDescription',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black.withOpacity(0.8),
-                  ),
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.group,
-                      color: Colors.purple,
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: teamMembers.map((teamMember) {
-                          return Chip(
-                            avatar: CircleAvatar(
-                              backgroundColor: Colors.grey.shade800,
-                              child: Text(teamMember[0].toUpperCase()),
-                            ),
-                            label: Text(teamMember),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                Row(
+        color: Colors.white,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Tasks',
+                      projectName,
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: const Color.fromARGB(255, 0, 0, 0),
                       ),
                     ),
-                    Spacer(),
-                    IconButton(
-                      icon: Icon(Icons.add),
-                      onPressed: () async {
-                        final newTask = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  AddNewTaskSheet(userId: _user!.uid)),
-                        );
-                        if (newTask != null) {
-                          addTask(newTask['title']!, newTask['member']!);
-                        }
-                      },
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          CircularPercentIndicator(
+                            radius: 100,
+                            lineWidth: 10,
+                            percent: taskCount == 0 ? 0 : completedTaskCount / taskCount,
+                            center: Text(
+                              taskCount == 0
+                                  ? '0%'
+                                  : '${((completedTaskCount / taskCount) * 100).toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                            progressColor: Color.fromARGB(255, 185, 86, 175),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Project Progress',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                tasks.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          'No tasks available.',
+                    const SizedBox(height: 20),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Description:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          projectDescription,
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.black.withOpacity(0.5),
                           ),
                         ),
-                      )
-                    : Column(
-                        children: tasks.map((task) {
-                          return Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: Color.fromARGB(255, 239, 228, 240),
-                              ),
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Title: ${task['title']}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Assigned to: ${task['member']}',
-                                    style: TextStyle(fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: ListTile(
+                  leading: Icon(
+                    Icons.group,
+                    color: Colors.purple,
+                  ),
+                  title: Text(
+                    'Team Members',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: teamMemberNames.map((member) {
+                    return ListTile(
+                      leading: CircleAvatar(
+                        child: Icon(
+                          _getIconForName(member),
+                          color: const Color.fromARGB(255, 127, 34, 34),
+                        ),
+                        backgroundColor: Colors.purple,
                       ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Text(
-                    'Total tasks: $taskCount',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                      title: Text(
+                        member, // Displaying member username
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    );
+                  }).toList(),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Text(
-                    'Completed tasks: $completedTaskCount',
-                    style: TextStyle(fontSize: 16),
-                  ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tasks',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black),
+                    ),
+                    const SizedBox(height: 8),
+                    tasks.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              'No tasks available.',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black.withOpacity(0.5)),
+                            ),
+                          )
+                        : Column(
+                            children: tasks.map((task) {
+                              return Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 4,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            task['title'] ?? 'No Title',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            task['member'] ?? 'No Member Assigned',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.black.withOpacity(0.5),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Icon(
+                                        task['status'] == 'completed'
+                                            ? Icons.check_circle
+                                            : Icons.circle,
+                                        color: task['status'] == 'completed'
+                                            ? Colors.green
+                                            : Colors.red,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                 AddNewTaskSheet(userId: widget.projectId), // Pass userId
+                            ),
+                          ).then((_) {
+                            _fetchTasks();
+                          });
+                        },
+                        child: const Text('Add New Task'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          textStyle: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

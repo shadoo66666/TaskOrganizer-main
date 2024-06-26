@@ -56,6 +56,25 @@ class FirebaseService {
     }
   }
 
+  Future<Map<String, dynamic>?> getUserByEmail(String email) async {
+    try {
+      QuerySnapshot<Map<String, dynamic>> userSnapshot = await _firestore.collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (userSnapshot.docs.isNotEmpty) {
+        return userSnapshot.docs.first.data();
+      } else {
+        print('User with email $email not found');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching user: $e');
+      rethrow;
+    }
+  }
+
   Future<String> getAdminNameById(String adminId) async {
     try {
       DocumentSnapshot<Map<String, dynamic>> adminSnapshot = await _firestore.collection('users').doc(adminId).get();
