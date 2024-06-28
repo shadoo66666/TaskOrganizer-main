@@ -111,4 +111,13 @@ class FirebaseService {
       rethrow;
     }
   }
+
+  void updateTaskStatus(String projectId, task, String newStatus) {}
+   Future<void> deleteProject(String projectId) async {
+    try {
+      await _firestore.collection('projects').doc(projectId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete project: $e');
+    }
+  }
 }

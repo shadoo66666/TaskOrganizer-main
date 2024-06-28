@@ -8,6 +8,10 @@ import 'package:task_app/widget/common/nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:task_app/views/Firebase/firebase_service.dart';
+import 'package:task_app/views/app_colors.dart';
+
+const Color primary = Color(0xff3889C9);
+const Color orange = Color(0xffE29C6E);
 
 class ProjectsView extends StatefulWidget {
   const ProjectsView({Key? key}) : super(key: key);
@@ -22,38 +26,39 @@ class _ProjectsViewState extends State<ProjectsView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color.fromARGB(237, 227, 232, 227),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: const CustomBottomNavigationBar(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddProjectView(onProjectAdded: _refreshProjects),
-            ),
-          );
-        },
-        label: const Text('New Project'),
-        icon: const Icon(Icons.add),
-      ),
-      body: Column(
-        children: [
-          _buildAppBar(context),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ProjectsListView(),
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Color.fromARGB(255, 255, 255, 255),
+    floatingActionButtonLocation: FloatingActionButtonLocation.startFloat, // Changed to startFloat
+    floatingActionButton: FloatingActionButton.extended(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddProjectView(onProjectAdded: _refreshProjects),
           ),
-        ],
-      ),
-    );
-  }
+        );
+      },
+      label: const Text('New Project'),
+      icon: const Icon(Icons.add, color: Colors.white),
+    ),
+    body: Column(
+      children: [
+        _buildAppBar(context),
+        const SizedBox(height: 8),
+        Expanded(
+          child: ProjectsListView(),
+        ),
+      ],
+    ),
+    bottomNavigationBar: const CustomBottomNavigationBar(),
+  );
+}
+
 
   Widget _buildAppBar(BuildContext context) {
     return Container(
-      color: Color.fromARGB(255, 255, 255, 255),
+      color: primary,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
@@ -64,7 +69,7 @@ class _ProjectsViewState extends State<ProjectsView> {
                 MaterialPageRoute(builder: (context) => NavBar()),
               );
             },
-            icon: const Icon(Icons.menu, color: Color.fromARGB(255, 0, 0, 0)),
+            icon: const Icon(Icons.menu, color: Colors.black),
           ),
           const SizedBox(width: 8),
           Text(
@@ -80,7 +85,7 @@ class _ProjectsViewState extends State<ProjectsView> {
             onPressed: () {
               // Handle search button press
             },
-            icon: const Icon(Icons.search, color: Color.fromARGB(255, 0, 0, 0)),
+            icon: const Icon(Icons.search, color: Colors.black),
           ),
         ],
       ),
@@ -103,21 +108,41 @@ class ProjectItem extends StatelessWidget {
   }) : super(key: key);
 
   void _deleteProject(BuildContext context) {
-    try {
-      // استدعاء خدمة Firebase لحذف المشروع بواسطة معرفه
-      // FirebaseService().deleteProject(projectId);
-
-      // إعادة تحميل قائمة المشاريع بعد الحذف
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Project deleted successfully')),
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Delete Project'),
+        content: Text('Are you sure you want to delete this project?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              try {
+                FirebaseService().deleteProject(projectId);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Project deleted successfully')),
+                );
+              } catch (e) {
+                print('Error deleting project: $e');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to delete project')),
+                );
+              }
+            },
+            child: Text('Delete'),
+          ),
+        ],
       );
-    } catch (e) {
-      print('Error deleting project: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete project')),
-      );
-    }
-  }
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +198,7 @@ class ProjectItem extends StatelessWidget {
                     projectDeadline,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withOpacity(0.7),
                     ),
                   ),
                 ),
@@ -196,7 +221,7 @@ class ProjectItem extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                progressColor: Color.fromARGB(255, 197, 204, 14),
+                progressColor: orange,
               ),
             ),
           ],
@@ -244,8 +269,6 @@ class ProjectsListView extends StatelessWidget {
     );
   }
 }
-
-
 
 class AddProjectView extends StatefulWidget {
   final VoidCallback onProjectAdded;
@@ -333,131 +356,167 @@ class _AddProjectViewState extends State<AddProjectView> {
     });
   }
 
-  Future<void> _searchEmail(String email) async {
-    if (email.isNotEmpty) {
-      try {
-        final result = await FirebaseFirestore.instance
-            .collection('users') // Replace 'users' with your collection name
-            .where('email', isGreaterThanOrEqualTo: email)
-            .where('email', isLessThan: email + 'z')
-            .get();
+ Future<void> _searchEmail(String email) async {
+  if (email.isNotEmpty) {
+    try {
+      final result = await FirebaseFirestore.instance
+          .collection('users') // Replace 'users' with your collection name
+          .where('email', isGreaterThanOrEqualTo: email)
+          .where('email', isLessThan: email + 'z')
+          .get();
 
-        setState(() {
-          searchResults.clear();
-          result.docs.forEach((doc) {
-            searchResults.add(doc['email']);
-          });
-          if (searchResults.isEmpty) {
-            emailNotFound = true;
-          } else {
-            emailNotFound = false;
-          }
+      setState(() {
+        searchResults.clear();
+        result.docs.forEach((doc) {
+          searchResults.add(doc['email']);
         });
-      } catch (e) {
-        print('Error searching email: $e');
-      }
+        if (searchResults.isEmpty) {
+          emailNotFound = true;
+        } else {
+          emailNotFound = false;
+        }
+      });
+    } catch (e) {
+      print('Error searching email: $e');
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Add New Project'),
+        backgroundColor: primary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: 'Project Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the project name';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(labelText: 'Project Description'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the project description';
-                  }
-                  return null;
-                },
-              ),
-              InkWell(
-                onTap: () {
-                  _selectDeadline(context);
-                },
-                child: IgnorePointer(
-                  child: TextField(
-                    controller: _deadlineController,
-                    decoration: const InputDecoration(
-                      labelText: 'Deadline',
-                      border: OutlineInputBorder(),
-                      suffixIcon: Icon(Icons.edit_calendar_outlined),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Project Name',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the project name';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Project Description',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the project description';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                InkWell(
+                  onTap: () {
+                    _selectDeadline(context);
+                  },
+                  child: IgnorePointer(
+                    child: TextField(
+                      controller: _deadlineController,
+                      decoration: InputDecoration(
+                        labelText: 'Deadline',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.edit_calendar_outlined),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(labelText: 'Team Member Email'),
-                onChanged: _searchEmail,
-                validator: (value) {
-                  return null;
-                },
-              ),
-              if (searchResults.isNotEmpty)
-                Column(
-                  children: [
-                    SizedBox(height: 10),
-                    Text('Search Results:'),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: searchResults.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(searchResults[index]),
-                          trailing: IconButton(
-                            icon: Icon(Icons.add),
-                            onPressed: () {
-                              _addTeamMember(searchResults[index]);
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Team Member Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: _searchEmail,
+                  validator: (value) {
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                if (searchResults.isNotEmpty)
+                  Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          Text('Search Results:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: searchResults.length,
+                            itemBuilder: (context, index) {
+                              return ListTile(
+                                title: Text(searchResults[index]),
+                                trailing: IconButton(
+                                  icon: Icon(Icons.add),
+                                  onPressed: () {
+                                    _addTeamMember(searchResults[index]);
+                                  },
+                                ),
+                              );
                             },
                           ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              if (emailNotFound)
-                Text('Email not found in database'),
-              Wrap(
-                children: teamMembers
-                    .map(
-                      (email) => Chip(
-                        label: Text(email),
-                        onDeleted: () {
-                          setState(() {
-                            teamMembers.remove(email);
-                          });
-                        },
+                        ],
                       ),
-                    )
-                    .toList(),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _saveProject,
-                child: Text('Save Project'),
-              ),
-            ],
+                    ),
+                  ),
+                if (emailNotFound)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text('Email not found in database', style: TextStyle(color: Colors.red)),
+                  ),
+                Wrap(
+                  spacing: 8,
+                  children: teamMembers
+                      .map(
+                        (email) => Chip(
+                          label: Text(email),
+                          backgroundColor: orange.withOpacity(0.7),
+                          deleteIconColor: Colors.white,
+                          onDeleted: () {
+                            setState(() {
+                              teamMembers.remove(email);
+                            });
+                          },
+                        ),
+                      )
+                      .toList(),
+                ),
+                SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: _saveProject,
+                    child: Text('Save Project'),
+                    style: ElevatedButton.styleFrom(
+                      disabledIconColor: orange, // Change save button primary color
+                      padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

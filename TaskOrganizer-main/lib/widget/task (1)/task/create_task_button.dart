@@ -14,7 +14,7 @@ class CreateTaskButton extends StatelessWidget {
     required this.descriptionController,
     required this.status, // Add status parameter
     required this.priority, // Add priority parameter
-    required this.tag, required String userId, // Add tag parameter
+    required this.tag, required String userId, DateTime? reminderDateTime, // Add tag parameter
   }) : super(key: key);
 
   final WidgetRef ref;

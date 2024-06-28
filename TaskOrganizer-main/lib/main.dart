@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
     return ProviderScope(
       child: MaterialApp(
         theme: ThemeData.dark().copyWith(
-          primaryColor: Colors.grey.shade900, // Set primary dark color
+          primaryColor: const Color.fromARGB(255, 255, 255, 255), // Set primary dark color
         ),
         debugShowCheckedModeBanner: false,
         home: const SplashScreen(),

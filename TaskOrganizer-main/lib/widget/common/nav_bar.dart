@@ -119,7 +119,7 @@ class _NavBarState extends State<NavBar> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => TheDashboard()),
+                  MaterialPageRoute(builder: (context) =>  Dashboard()),
                 );
               },
             ),

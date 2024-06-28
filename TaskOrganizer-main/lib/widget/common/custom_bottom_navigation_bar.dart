@@ -6,7 +6,10 @@ import 'package:task_app/views/task/all_task_screen%20(1).dart';
 
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:task_app/widget/inbox.dart';
+  const Color primary=Color(0xff3889C9);
 
+
+const Color orange=Color(0xffE29C6E);
 class CustomBottomNavigationBar extends StatefulWidget {
   const CustomBottomNavigationBar({super.key});
 
@@ -64,7 +67,7 @@ class _CustomBottomNavigationBarState extends State<CustomBottomNavigationBar> {
         break;
         }},
         
-backgroundColor: const Color(0xff8145E5), );
+backgroundColor: primary, );
   }
 }
 
